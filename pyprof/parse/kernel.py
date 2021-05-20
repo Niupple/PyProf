@@ -204,6 +204,8 @@ class Kernel(object):
         a = lambda: None
         a.kShortName = self.kShortName
         a.kDuration = self.kDuration
+        a.kStartTime = self.kStartTime
+        a.kEndTime = self.kEndTime
         #a.layerMarkers = self.layerMarkers
         a.layer = self.layer
         a.trace = self.traceMarkers

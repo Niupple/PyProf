@@ -15,7 +15,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .parse import main
+from .parse import main, autoProf
 
 if __name__ == '__main__':
-    main()
+    # main()
+    autoProf()

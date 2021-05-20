@@ -27,7 +27,7 @@ from .db import DB
 from .kernel import Kernel
 from .nvvp import NVVP
 from .nsight import Nsight
-
+from .checklist import get_default_checklist
 
 def parseArgs():
     parser = argparse.ArgumentParser(prog=sys.argv[0], description="Parse SQLite3 DB from NVprof or Nsight.")
@@ -46,11 +46,7 @@ def dbIsNvvp(db):
     result = db.select(cmd)
     return True if len(result) == 1 else False
 
-
-def main():
-    args = parseArgs()
-
-    db = DB(args.file)
+def extractKernels(db):
     nvvp = None
     if dbIsNvvp(db):
         nvvp = NVVP(db)
@@ -139,10 +135,99 @@ def main():
             if (len(k.altSeqId)):
                 (k.altSeqId).sort()
 
+        yield k
+
+def main():
+    args = parseArgs()
+
+    db = DB(args.file)
+    for k in extractKernels(db):
         k.print()
 
     db.close()
 
+def durationReduce(lst, gettime):
+    d = {}
+    d['cnt'] = len(lst)
+    durs = list(map(gettime, lst))
+    d['minn'] = min(durs)
+    d['maxn'] = max(durs)
+    d['tot'] = sum(durs)
+    d['avg'] = d['tot']/d['cnt']
+    return d
+
+def secondaryTemporalReduce(lst, gettime):
+    d = {}
+    lst = list(map(gettime, lst))
+    d['cnt'] = sum(map(lambda x: x['cnt'], lst))
+    d['tot'] = sum(map(lambda x: x['tot'], lst))
+    d['minn'] = min(map(lambda x: x['minn'], lst))
+    d['maxn'] = max(map(lambda x: x['maxn'], lst))
+    d['avg'] = d['tot']/d['cnt']
+    return d
+
+def aggragateByName(lst, red, getname=lambda x:x.kShortName, gettime=lambda x:x.kDuration):
+    d = {}
+    for k in lst:
+        name = getname(k)
+        if name not in d:
+            d[name] = []
+        d[name].append(k)
+    for k, v in d.items():
+        d[k] = red(v, gettime)
+    return d
+
+def attachPercentage(lst, gettot=lambda x:x['tot']):
+    tot = sum(map(gettot, lst))
+    for d in lst:
+        d['percentage'] = d['tot']/tot
+
+def autoProf():
+    args = parseArgs()
+    db = DB(args.file)
+    kernels = [k for k in extractKernels(db)]
+    db.close()
+
+    spliter = kernels[0].kLongName    # to configure
+    kernels_per_it = []
+    cur_it = []
+    for i, k in enumerate(kernels):
+        if k.kLongName == spliter:
+            if len(cur_it) > 0:
+                kernels_per_it.append(cur_it)
+                cur_it = []
+        cur_it.append(k)
+    if len(cur_it) > 0:
+        kernels_per_it.append(cur_it)
+
+    print("got", len(kernels_per_it), "iterations")
+
+    for i, it in enumerate(kernels_per_it):
+        kernels_per_it[i] = aggragateByName(it, durationReduce)
+
+    flatten_kernels = []
+    for d in kernels_per_it:
+        flatten_kernels.extend(d.items())
+    # print(flatten_kernels)
+    result = aggragateByName(flatten_kernels, secondaryTemporalReduce, lambda x:x[0], lambda x:x[1])
+    dictized = []
+    for k, d in result.items():
+        d['name'] = k
+        dictized.append(d)
+    result = dictized
+    print(result)
+
+    attachPercentage(result)
+
+    byTot = sorted(result, key=lambda x: -x['tot'])
+
+    print('\n'.join(map(str, byTot)))
+
+    checklist = get_default_checklist()
+    checklist.check('gemm_heavy', byTot)
+    checklist.check('data_movement', result)
+
+    checklist.print()
 
 if __name__ == '__main__':
     main()
