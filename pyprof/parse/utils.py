@@ -39,7 +39,7 @@ class TablePrinter:
 
     def print(self, file=sys.stdout):
         cutline = self.format_line(map(lambda x : '-'*x, self.widths), '+', '-')
-        print('\n', file=file)
+        # print('\n', file=file)
         print(cutline, file=file)
         print(self.format_line(self.names), file=file)
         print(cutline, file=file)

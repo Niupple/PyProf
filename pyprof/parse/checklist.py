@@ -11,7 +11,7 @@ class CheckList:
         else:
             print("!recheck on item {}".format(item))
 
-    def print(self):
+    def print(self, title: str):
         printer = TablePrinter(["Item", "Checked", "Suggestions"])
         for k, e in self.entry.items():
             if e['checked'] is None:
@@ -20,6 +20,7 @@ class CheckList:
                 printer.write_line([k, 'WARNING', e['sugg']])
             else:
                 printer.write_line([k, 'PASSED', '-'])
+        print("===Parsing the profile {}===".format(title))
         printer.print()
 
 def always_true(*args, **kwargs):
@@ -29,9 +30,9 @@ def always_false(*args, **kwargs):
     return False
 
 AUTOPROF_TEMPLATE = [
-    ('gemm_heavy', always_true, 'Try to convert your model to fp16.'),
+    ('gemm_heavy', always_false, 'Try to convert your model to fp16.'),
     ('small_kernels', always_true, 'Try to fuse the small kernels in the model.'),
-    ('data_movement', always_false, 'Try to reduce the total amount of the data movement.'),
+    ('data_movement', always_true, 'Try to reduce the total amount of the data movement.'),
 ]
 
 def get_default_checklist():

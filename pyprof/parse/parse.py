@@ -225,9 +225,10 @@ def autoProf():
 
     checklist = get_default_checklist()
     checklist.check('gemm_heavy', byTot)
+    checklist.check('small_kernels')
     checklist.check('data_movement', result)
 
-    checklist.print()
+    checklist.print(args.file)
 
 if __name__ == '__main__':
     main()
