@@ -27,6 +27,7 @@ class NVVP(object):
     driverT = "CUPTI_ACTIVITY_KIND_DRIVER"
     runtimeT = "CUPTI_ACTIVITY_KIND_RUNTIME"
     kernelT = "CUPTI_ACTIVITY_KIND_CONCURRENT_KERNEL"
+    memcpyT = "CUPTI_ACTIVITY_KIND_MEMCPY"
     markerT = "CUPTI_ACTIVITY_KIND_MARKER"
     stringT = "StringTable"
 
@@ -92,6 +93,7 @@ class NVVP(object):
     def getKernelInfo(self):
         """
 		Get GPU kernel info
+        [TODO] Maybe the duration of kernel table, instead of that of runtime should be considered.
 		"""
         cmd = (
             "SELECT "
@@ -108,6 +110,29 @@ class NVVP(object):
             "LEFT JOIN {} AS runtime ON (kernels.correlationId = runtime.correlationId) "
             "LEFT JOIN {} AS driver ON (kernels.correlationId = driver.correlationId) "
         ).format(self.kernelT, self.stringT, self.runtimeT, self.driverT)
+        result = self.db.select(cmd)
+        return result
+
+    def getMemcpyInfo(self):
+        # copyKind:
+        #   1 - Memcpy HtoD
+        #   2 - Memcpy DtoH
+        #   8 - Memcpy DtoD
+        # flags:
+        #   0 - Sync
+        #   1 - Async
+        # srcKind/dstKind
+        #   1 - Pageable
+        #   2 - Page-locked
+        #   3 - Device
+        cmd = (
+            "SELECT "
+            "_id_ AS cId, "
+            "start as rStart, "
+            "end as rEnd, "
+            "copyKind, srcKind, dstKind, flags, bytes, deviceId, contextId, streamId "
+            "FROM {}"
+        ).format(self.memcpyT)
         result = self.db.select(cmd)
         return result
 

@@ -1,4 +1,5 @@
 from .utils import TablePrinter
+from .ops import is_sgemm
 
 class CheckList:
     def __init__(self, template):
@@ -28,6 +29,16 @@ def always_true(*args, **kwargs):
 
 def always_false(*args, **kwargs):
     return False
+
+def check_gemm_heavy(kernels: list):
+    for k in kernels:
+        if is_sgemm(k['name']) and k['percentage'] > 0.5:
+            return True
+    return False
+
+def check_data_movement(kernels: list):
+    for k in kernels:
+        
 
 AUTOPROF_TEMPLATE = [
     ('gemm_heavy', always_false, 'Try to convert your model to fp16.'),
